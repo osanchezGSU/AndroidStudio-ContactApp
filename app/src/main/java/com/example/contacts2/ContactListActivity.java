@@ -123,6 +123,10 @@ public class ContactListActivity extends AppCompatActivity {
                 Intent intent = new Intent(ContactListActivity.this, ContactMapActivity.class);
                 intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                 startActivity(intent);
+                //Sensor:
+                //Intent intent = new Intent(ContactListActivity.this, ContactMapSensorActivity.class);
+                //intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                //startActivity(intent);
             }
         });
     }

@@ -40,7 +40,11 @@ public class ContactSettingsActivity extends AppCompatActivity {
         ibList.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent(ContactSettingsActivity.this, ContactMapActivity.class);
+                //Intent intent = new Intent(ContactSettingsActivity.this, ContactMapActivity.class);
+                //intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                //startActivity(intent);
+                //Sensor:
+                Intent intent = new Intent(ContactSettingsActivity.this, ContactMapSensorActivity.class);
                 intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                 startActivity(intent);
             }

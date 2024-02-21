@@ -7,11 +7,45 @@
     android:layout_height="match_parent"
     tools:context=".ContactMapActivity">
 
-    <fragment
+    <FrameLayout
         android:id="@+id/map"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_alignParentTop="true"/>
+        android:layout_height="625dp"
+        android:layout_alignParentTop="true"
+        app:layout_constraintBottom_toTopOf="@+id/include3"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"  >
+
+
+    </FrameLayout>
+
+    <RadioGroup
+        android:id="@+id/radioGroupMapType"
+        android:layout_width="137dp"
+        android:layout_height="152dp"
+        android:paddingLeft="8dp"
+        android:paddingTop="8dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <RadioButton
+            android:id="@+id/radioButtonNormal"
+            android:layout_width="match_parent"
+            android:layout_height="61dp"
+            android:text="Normal"
+            android:textSize="20dp"
+            android:textStyle="bold" />
+
+        <RadioButton
+            android:id="@+id/radioButtonSatellite"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="Satellite"
+            android:textSize="20dp"
+            android:textStyle="bold" />
+    </RadioGroup>
+
     <include
         android:id="@+id/include3"
         layout="@layout/navigation_bar"
@@ -20,4 +54,5 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>
