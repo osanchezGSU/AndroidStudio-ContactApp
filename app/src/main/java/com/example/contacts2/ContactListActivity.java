@@ -6,10 +6,13 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.app.Dialog;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.os.BatteryManager;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
@@ -34,20 +37,6 @@ public class ContactListActivity extends AppCompatActivity {
     ArrayList<Contact> contacts;
 
 
-    /*private View.OnClickListener onItemClickListener = new View.OnClickListener() {
-        @Override
-        public void onClick(View view) {
-
-           RecyclerView.ViewHolder viewHolder = (RecyclerView.ViewHolder)view.getTag();
-
-            int position = viewHolder.getAdapterPosition();
-            int contactId = contacts.get(position).getContactID();
-            Intent intent = new Intent(ContactListActivity.this, MainActivity.class);
-            intent.putExtra("_id", contactId);
-            startActivity(intent);
-        }
-
-    };*/
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,6 +49,21 @@ public class ContactListActivity extends AppCompatActivity {
 
         initDeleteSwitch();
 
+        BroadcastReceiver batteryReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                double batteryLevel = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, 0);
+                double levelScale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, 0);
+                int batteryPercent = (int) Math.floor(batteryLevel / levelScale * 100);
+                TextView textBatteryState = (TextView) findViewById(R.id.textBatteryLevel);
+                textBatteryState.setText(batteryPercent + "%");
+            }
+        };
+
+        IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+        registerReceiver(batteryReceiver, filter);
+
+
 
     }
 
@@ -70,8 +74,10 @@ public class ContactListActivity extends AppCompatActivity {
         String sortBy = getSharedPreferences("MyContactListPreferences", Context.MODE_PRIVATE).getString("sortfield", "contactname");
         String sortOrder = getSharedPreferences("MyContactListPreferences", Context.MODE_PRIVATE).getString("sortorder", "ASC");
 
+
         ContactDataSource ds = new ContactDataSource(this);
         ArrayList<Contact> contacts;
+
 
         try {
             ds.open();
@@ -109,6 +115,8 @@ public class ContactListActivity extends AppCompatActivity {
         }
 
     }
+
+
     private void initListButton() {
         ImageButton ibSetting = findViewById(R.id.contact_button);
         ibSetting.setEnabled(false);

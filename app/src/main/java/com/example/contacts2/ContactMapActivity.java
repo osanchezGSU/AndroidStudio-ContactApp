@@ -12,6 +12,10 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Point;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.location.Address;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -37,6 +41,7 @@ import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
 //import android.support.design.widget.Snackbar;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -59,6 +64,10 @@ public class ContactMapActivity extends AppCompatActivity implements OnMapReadyC
     //LocationListener networkListener;
     //Location currentBestLocation;
     GoogleMap gMap;
+    SensorManager sensorManager;
+    Sensor accelerometer;
+    Sensor magnetometer;
+    TextView textDirection;
     FusedLocationProviderClient fusedLocationProviderClient;
     LocationRequest locationRequest;
     LocationCallback locationCallback;
@@ -73,6 +82,20 @@ public class ContactMapActivity extends AppCompatActivity implements OnMapReadyC
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_contact_map);
+        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        magnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+
+        if(accelerometer != null && magnetometer != null){
+            sensorManager.registerListener(mySensorEventListener, accelerometer,
+                    SensorManager.SENSOR_DELAY_FASTEST);
+            sensorManager.registerListener(mySensorEventListener, magnetometer,
+                    SensorManager.SENSOR_DELAY_FASTEST);
+        }else{
+            Toast.makeText(this, "Sensor not found", Toast.LENGTH_LONG).show();
+        }
+        textDirection = (TextView) findViewById(R.id.textHeading);
+
         Bundle extras = getIntent().getExtras();
         try{
             ContactDataSource ds = new ContactDataSource(ContactMapActivity.this);
@@ -93,6 +116,7 @@ public class ContactMapActivity extends AppCompatActivity implements OnMapReadyC
                 .replace(R.id.map, mapFragment)
                 .commit();
         mapFragment.getMapAsync(this);
+
         createLocationRequest();
         createLocationCallback();
         initMapTypeButtons();
@@ -102,6 +126,56 @@ public class ContactMapActivity extends AppCompatActivity implements OnMapReadyC
         initMapButton();
 
     }
+    private SensorEventListener mySensorEventListener = new SensorEventListener() {
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+        }
+        float [] accelerometerValues;
+        float [] magneticValues;
+
+
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+            if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER)
+                accelerometerValues = event.values;
+
+            if(event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD)
+                magneticValues = event.values;
+            if(accelerometerValues != null && magneticValues != null){
+                float R[] = new float[9];
+                float I[] = new float[9];
+                boolean success = SensorManager.getRotationMatrix(R, I, accelerometerValues, magneticValues);
+
+                if(success){
+                    float orientation[] = new float[3];
+                    SensorManager.getOrientation(R, orientation);
+
+                    float azimut = (float) Math.toDegrees(orientation[0]);
+                    if (azimut < 0.0f) {
+                        azimut += 360.0f;
+                    }
+                    String direction;
+                    if (azimut >= 315 || azimut < 45 ) {
+                        direction = "N";
+                    }
+                    else if(azimut >= 225 && azimut < 315) {
+                        direction = "W";
+                    }
+                    else if (azimut >= 135 && azimut < 225){
+                        direction = "S";
+                    }
+                    else{
+                        direction = "E";
+                    }
+                    textDirection.setText(direction);
+                }
+            }
+
+        }
+
+
+    };
 
     private void initMapTypeButtons() {
         RadioGroup rgMapType = findViewById(R.id.radioGroupMapType);

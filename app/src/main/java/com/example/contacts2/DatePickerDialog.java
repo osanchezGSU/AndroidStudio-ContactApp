@@ -17,6 +17,9 @@ public class DatePickerDialog extends DialogFragment {
     Calendar selectedDate;
 
     public interface SaveDateListener{
+        void onRequestPermissionResult(int requestCode,
+                                       @NonNull String permissions[], @NonNull int[] grantResults);
+
         void didFinishDatePickerDialog(Calendar selectedTime);
     }
 

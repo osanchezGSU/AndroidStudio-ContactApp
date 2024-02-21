@@ -6,7 +6,11 @@ import android.database.sqlite.SQLiteDatabase;
 import android.content.Context;
 import android.content.ContentValues;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -41,7 +45,12 @@ public class ContactDataSource {
             initialValues.put("cellnumber", c.getCellNumber());
             initialValues.put("email", c.getEMail());
             initialValues.put("birthday", String.valueOf(c.getBirthday().getTimeInMillis()));
-            initialValues.put("image", c.getImage());
+            if (c.getImage() != null){
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                c.getImage().compress(Bitmap.CompressFormat.PNG, 100, baos);
+                byte[] photo = baos.toByteArray();
+                initialValues.put("image",photo);
+            }
 
             didSucceed = database.insert("contact", null, initialValues) > 0;
 
@@ -67,7 +76,12 @@ public class ContactDataSource {
             updateValues.put("cellnumber", c.getCellNumber());
             updateValues.put("email", c.getEMail());
             updateValues.put("birthday", String.valueOf(c.getBirthday().getTimeInMillis()));
-            updateValues.put("image", c.getImage());
+            if (c.getImage() != null){
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                c.getImage().compress(Bitmap.CompressFormat.PNG, 100, baos);
+                byte[] photo = baos.toByteArray();
+                updateValues.put("image",photo);
+            }
 
             didSucceed = database.update("contact", updateValues, "_id=" + rowId, null) > 0;
         }
@@ -165,7 +179,12 @@ public class ContactDataSource {
             Calendar calendar = Calendar.getInstance();
             calendar.setTimeInMillis(Long.valueOf(cursor.getString(9)));
             contact.setBirthday(calendar);
-            // newContact.setImage(cursor.getString(10));
+            byte[] photo = cursor.getBlob(10);
+            if(photo != null ){
+                ByteArrayInputStream imageStream = new ByteArrayInputStream(photo);
+                Bitmap thePicture = BitmapFactory.decodeStream(imageStream);
+                contact.setImage(thePicture);
+            }
             cursor.close();
         }
         return contact;

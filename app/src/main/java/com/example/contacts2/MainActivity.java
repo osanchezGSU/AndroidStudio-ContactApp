@@ -4,26 +4,27 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentManager;
 
-import android.app.Dialog;
-import android.content.Context;
+import android.app.Activity;
 import android.content.Intent;
-import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
+import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.telephony.PhoneNumberFormattingTextWatcher;
 import android.text.Editable;
+import android.text.InputType;
 import android.text.TextWatcher;
 import android.text.format.DateFormat;
 import android.view.View;
-import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.CalendarView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.Spinner;
@@ -33,11 +34,16 @@ import android.widget.ToggleButton;
 import android.widget.EditText;
 
 
+import com.google.android.material.snackbar.Snackbar;
+
 import java.util.Calendar;
 
 public class MainActivity extends AppCompatActivity implements DatePickerDialog.SaveDateListener, AdapterView.OnItemSelectedListener {
     TextView birthdayTextView;
     private Contact currentContact;
+    final int PERMISSION_REQUEST_PHONE = 102;
+    final int PERMISSION_REQUEST_CAMER = 103;
+    final int CAMERA_REQUEST = 1888;
 
     ActivityResultLauncher<Intent> resultLauncher;
 
@@ -51,6 +57,8 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
         initMapButton();
         initToggleButton();
         initStateSpinner();
+        initCallFunction();
+        initImageButton();
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
             int contactId = extras.getInt("contactId");
@@ -67,10 +75,121 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
         initTextChangeEvents();
         initSaveButton();
 
-        initSelectPhotoButton();
-        registerResult();
 
     }
+    @Override
+    public void onRequestPermissionResult(int requestCode,
+                                          @NonNull String permissions[], @NonNull int[] grantResults){
+        switch (requestCode){
+            case PERMISSION_REQUEST_PHONE:{
+                if (grantResults.length > 0 && grantResults[0] ==
+                        PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(MainActivity.this, "You may now call from this app.", Toast.LENGTH_LONG).show();
+                }else {
+                    Toast.makeText(MainActivity.this, "You will not be able to make calls form this app.",
+                            Toast.LENGTH_LONG).show();
+                }
+            }
+            case PERMISSION_REQUEST_CAMER:{
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    takePhoto();
+                }
+                else{
+                    Toast.makeText(MainActivity.this,
+                            "You will not be able to save conact pictures from this app",
+                            Toast.LENGTH_LONG).show();
+                }
+                return;
+            }
+
+        }
+
+    }
+
+    private void takePhoto(){
+        Intent cameraIntent = new Intent (MediaStore.ACTION_IMAGE_CAPTURE);
+        startActivityForResult(cameraIntent, CAMERA_REQUEST);
+    }
+
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == CAMERA_REQUEST) {
+            if (resultCode == RESULT_OK) {
+                Bitmap photo = (Bitmap) data.getExtras().get("data");
+                Bitmap scaledPhoto = Bitmap.createScaledBitmap(photo, 144, 144, true);
+                ImageButton imageContact = (ImageButton) findViewById(R.id.imageContact);
+                imageContact.setImageBitmap(scaledPhoto);
+                currentContact.setImage(scaledPhoto);
+            }
+        }
+    }
+
+    private void callContact(String phonenNumber){
+        Intent intent = new Intent (Intent.ACTION_CALL);
+        intent.setData(Uri.parse("tel:" + phonenNumber));
+        if(Build.VERSION.SDK_INT >= 23 &&
+        ContextCompat.checkSelfPermission(getBaseContext(), android.Manifest.permission.CALL_PHONE) !=
+        PackageManager.PERMISSION_GRANTED){
+            return;
+        }
+        else{
+            startActivity(intent);
+        }
+    }
+
+    private void initCallFunction() {
+        EditText editPhone = (EditText) findViewById(R.id.home_number);
+        editPhone.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                checkPhonePermission(currentContact.getHomeNumber());
+                return false;
+            }
+        });
+        EditText editCell = (EditText) findViewById(R.id.cell_number);
+        editPhone.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                checkPhonePermission(currentContact.getCellNumber());
+                return false;
+            }
+        });
+
+
+
+    }
+
+    private void checkPhonePermission(String phoneNumber){
+        if (Build.VERSION.SDK_INT >= 23) {
+            if (ContextCompat.checkSelfPermission(MainActivity.this,
+                    android.Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED){
+                if(ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this,
+                        android.Manifest.permission.CALL_PHONE)){
+                    Snackbar.make(findViewById(R.id.activity_main),
+                            "MyConactList requires this permission to place a call from the app.",
+                            Snackbar.LENGTH_INDEFINITE).setAction("OK", new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            ActivityCompat.requestPermissions(MainActivity.this,
+                                    new String [] {android.Manifest.permission.CALL_PHONE},
+                                    PERMISSION_REQUEST_PHONE);
+                        }
+                    })
+                            .show();
+                }else{
+                    ActivityCompat.requestPermissions(MainActivity.this,
+                            new String[]{android.Manifest.permission.CALL_PHONE},
+                            PERMISSION_REQUEST_PHONE);
+                }
+            }
+            else {
+                callContact(phoneNumber);
+                }
+            }else {
+            callContact(phoneNumber);
+        }
+    }
+
     private void initListButton() {
         ImageButton ibList = findViewById(R.id.contact_button);
         ibList.setOnClickListener(new View.OnClickListener() {
@@ -135,23 +254,29 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
         EditText editEmail = findViewById(R.id.emailInput);
         Button buttonChangeDate = findViewById(R.id.birthdayButton);
         Button buttonSave = findViewById(R.id.save_Button);
-        Button imageButton = findViewById(R.id.addImage);
+        ImageButton picture = findViewById(R.id.imageContact);
 
         editName.setEnabled(isEnabled);
         editAddress.setEnabled(isEnabled);
         editCity.setEnabled(isEnabled);
         editState.setEnabled(isEnabled);
         editZipCode.setEnabled(isEnabled);
-        editHome.setEnabled(isEnabled);
-        editCell.setEnabled(isEnabled);
+
         editEmail.setEnabled(isEnabled);
         buttonChangeDate.setEnabled(isEnabled);
         buttonSave.setEnabled(isEnabled);
-        imageButton.setEnabled(isEnabled);
+        picture.setEnabled(isEnabled);
 
 
         if (isEnabled) {
+            editHome.setInputType(InputType.TYPE_CLASS_PHONE);
+            editCell.setInputType(InputType.TYPE_CLASS_PHONE);
             editName.requestFocus();
+        }
+        else{
+            editHome.setInputType(InputType.TYPE_NULL);
+            editCell.setInputType(InputType.TYPE_NULL);
+
         }
     }
     @Override
@@ -363,31 +488,8 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
 
     }
 
-    private void initSelectPhotoButton(){
-        Button imageButton = findViewById(R.id.addImage);
-        imageButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
-                resultLauncher.launch(intent);
-            }
-        });
-    }
 
-    private void registerResult() {
-        ImageView profilePic = findViewById(R.id.profilePic);
-        resultLauncher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    if (result.getResultCode() == AppCompatActivity.RESULT_OK) {
-                        Uri imageURI = result.getData().getData();
-                        currentContact.setImage(String.valueOf(imageURI));
-                        profilePic.setImageURI(imageURI);
 
-                    }
-                }
-        );
-    }
     private void initContact (int id) {
         ContactDataSource ds = new ContactDataSource(MainActivity.this);
         try {
@@ -408,6 +510,13 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
         EditText editCell = findViewById(R.id.cell_number);
         EditText editEmail = findViewById(R.id.emailInput);
         TextView birthDay = findViewById(R.id.birthdayTextView);
+        ImageButton picture = findViewById(R.id.imageContact);
+        if (currentContact.getImage() != null){
+            picture.setImageBitmap(currentContact.getImage());
+        }
+        else{
+            picture.setImageResource(R.drawable.person_icon);
+        }
 
 
         editName.setText(currentContact.getContactName());
@@ -426,6 +535,44 @@ public class MainActivity extends AppCompatActivity implements DatePickerDialog.
         if (index != -1) {
             editState.setSelection(index);
         }
+    }
+    private void initImageButton() {
+        ImageButton ib = findViewById(R.id.imageContact);
+        ib.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (Build.VERSION.SDK_INT >= 23 ) {
+                    if (ContextCompat.checkSelfPermission(MainActivity.this,
+                            android.Manifest.permission.CAMERA) !=
+                            PackageManager.PERMISSION_GRANTED) {
+                        if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this,
+                                android.Manifest.permission.CAMERA)) {
+                            Snackbar.make(findViewById(R.id.activity_main),
+                                            "The app needs permission to take a picture.",
+                                            Snackbar.LENGTH_INDEFINITE).setAction("OK", new View.OnClickListener() {
+                                        @Override
+                                        public void onClick(View v) {
+                                            ActivityCompat.requestPermissions(MainActivity.this,
+                                                    new String[]{android.Manifest.permission.CAMERA},
+                                                    PERMISSION_REQUEST_CAMER);
+
+
+                                        }
+                                    })
+                                    .show();
+                        } else {
+                            ActivityCompat.requestPermissions(MainActivity.this, new String[]{android.Manifest.permission.CAMERA},
+                                    PERMISSION_REQUEST_CAMER);
+                        }
+                    } else {
+                        takePhoto();
+                    }
+                }else{
+                    takePhoto();
+                }
+            }
+        });
+
 
     }
 }
